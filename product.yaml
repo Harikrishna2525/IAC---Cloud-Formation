@@ -5,7 +5,7 @@ Parameters:
   BucketName:
     Type: String
     Default: product-static-bucket-eunorth1
-
+    
 Resources:
 
 # -------------------------------
