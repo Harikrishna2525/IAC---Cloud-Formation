@@ -5,7 +5,7 @@ Parameters:
   BucketName:
     Type: String
     Default: product-static-bucket-eunorth1
-    
+
 Resources:
 
 # -------------------------------
@@ -31,18 +31,39 @@ Resources:
       VpcId: !Ref ProductVPC
       InternetGatewayId: !Ref InternetGateway
 
-  PublicSubnet:
+
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref ProductVPC
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: ProductPublicSubnet1
+
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ProductVPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: ProductPublicSubnet2
+
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref ProductVPC
+      Tags:
+        - Key: Name
+          Value: ProductPublicRouteTable
+
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -52,10 +73,18 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  PublicSubnetRouteTableAssociation:
+
+  PublicSubnet1Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+
+  PublicSubnet2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
 # -------------------------------
