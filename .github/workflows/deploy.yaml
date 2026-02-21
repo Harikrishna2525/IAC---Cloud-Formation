@@ -31,6 +31,6 @@ jobs:
         run: |
           aws cloudformation deploy \
             --template-file product.yaml \
-            --stack-name product-infra-stack \
+            --stack-name product-infra \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides BucketName=product-static-bucket-eunorth1
