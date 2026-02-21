@@ -24,15 +24,17 @@ Resources:
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: ProductIGW
 
   AttachIGW:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId: !Ref ProductVPC
       InternetGatewayId: !Ref InternetGateway
-      Tags:
-        - Key: Name
-          Value: ProductIGWAttachment
+    
 
 
   PublicSubnet1:
