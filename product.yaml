@@ -273,18 +273,39 @@ Resources:
       IntegrationUri: !GetAtt ProductFunction.Arn
       PayloadFormatVersion: "2.0"
 
-  ApiRoute:
+  ApiRouteGetAll:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref HttpApi
-      RouteKey: ANY /product/{id}
+      RouteKey: GET /prod
       Target: !Sub "integrations/${LambdaIntegration}"
 
-  ApiRouteNoId:
+  ApiRoutePost:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref HttpApi
-      RouteKey: ANY /product
+      RouteKey: POST /prod
+      Target: !Sub "integrations/${LambdaIntegration}"
+
+  ApiRouteGetById:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /prod/{id}
+      Target: !Sub "integrations/${LambdaIntegration}"
+
+  ApiRoutePut:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: PUT /prod/{id}
+      Target: !Sub "integrations/${LambdaIntegration}"
+
+  ApiRouteDelete:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: DELETE /prod/{id}
       Target: !Sub "integrations/${LambdaIntegration}"
 
   Stage:
