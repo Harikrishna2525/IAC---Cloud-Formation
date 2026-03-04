@@ -4,7 +4,7 @@ Description: Product Infra Stack - S3 + CloudFront (OAC) + Lambda + DynamoDB + H
 Parameters:
   BucketName:
     Type: String
-    Default: product-static-bucket-eunorth1
+    Default: product-static-bucket
 
 Resources:
 

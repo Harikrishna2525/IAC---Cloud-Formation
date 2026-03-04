@@ -33,4 +33,4 @@ jobs:
             --template-file product.yaml \
             --stack-name product-infra-stack \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides BucketName=product-static-bucket-eunorth1
+            --parameter-overrides BucketName=product-static-bucket-us-east-1
