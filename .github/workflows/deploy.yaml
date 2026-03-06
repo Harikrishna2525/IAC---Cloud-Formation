@@ -31,6 +31,13 @@ jobs:
         run: |
           aws cloudformation deploy \
             --template-file product.yaml \
-            --stack-name infra-stack \
+            --stack-name infra-stacks \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides BucketName=product-static-bucket-12345678
+            --parameter-overrides BucketName=krish-bucket-12345678
+
+      - name: Verify stack deployment fails
+        run: |
+          aws cloudformation describe-stack-events \
+              --stack-name infra-stacks \
+              --region us-east-1 \
+              --max-items 15
