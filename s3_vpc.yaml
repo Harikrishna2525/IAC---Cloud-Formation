@@ -109,14 +109,17 @@ Resources:
 # -------------------
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
+    DependsOn: WebsiteBucket
     Properties:
       DistributionConfig:
         Enabled: true
+        DefaultRootObject: index.html
+
         Origins:
           - Id: S3Origin
             DomainName: !GetAtt WebsiteBucket.RegionalDomainName
-            S3OriginConfig: {}
             OriginAccessControlId: !Ref OriginAccessControl
+            S3OriginConfig: {}
 
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
@@ -124,8 +127,11 @@ Resources:
           AllowedMethods:
             - GET
             - HEAD
+          ForwardedValues:
+            QueryString: false
 
-        DefaultRootObject: index.html
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
 
 # -------------------
 # Bucket Policy (STRICT)
