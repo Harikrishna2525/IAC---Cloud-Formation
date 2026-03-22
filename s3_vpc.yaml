@@ -101,6 +101,16 @@ Resources:
   LogsBucket:
     Type: AWS::S3::Bucket
 
+# CloudFront OAC
+  OriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: OAC
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
 # CloudFront
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
