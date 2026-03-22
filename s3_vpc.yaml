@@ -114,7 +114,9 @@ Resources:
 # CloudFront
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
-    DependsOn: WebsiteBucket
+    DependsOn:
+      - WebsiteBucket
+      - OriginAccessControl
     Properties:
       DistributionConfig:
         Enabled: true
