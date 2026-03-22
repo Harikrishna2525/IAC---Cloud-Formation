@@ -1,0 +1,44 @@
+name: S3 + CloudFront Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # 1. Validate template
+      - name: Validate CloudFormation
+        run: |
+          aws cloudformation validate-template \
+            --template-body file://s3_vpc.yaml
+
+      # 2. Deploy (with no-fail empty changeset)
+      - name: Deploy stack
+        run: |
+          aws cloudformation deploy \
+            --template-file s3_vpc.yaml \
+            --stack-name s3-vpc-stack \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
+
+      # 3. Get outputs
+      - name: Get Outputs
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name s3-vpc-stack \
+            --query "Stacks[0].Outputs" \
+            --output table
