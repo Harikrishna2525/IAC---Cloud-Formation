@@ -1,72 +1,78 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: S3 + CloudFront (Private) + VPC with 2 Public Subnets
+Description: Product Infra Stack - S3 + CloudFront (OAC) + VPC
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: product-static-bucket-eunorth1
 
 Resources:
 
-# -------------------
+# -------------------------------
 # VPC
-# -------------------
-  VPC:
+# -------------------------------
+
+  ProductVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: ProductVPC
 
-# -------------------
-# Internet Gateway
-# -------------------
-  IGW:
+  InternetGateway:
     Type: AWS::EC2::InternetGateway
 
-  AttachGateway:
+  AttachIGW:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref VPC
-      InternetGatewayId: !Ref IGW
+      VpcId: !Ref ProductVPC
+      InternetGatewayId: !Ref InternetGateway
 
-# -------------------
-# Public Subnets (Multi-AZ)
-# -------------------
+
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ProductVPC
       CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [0, !GetAZs ""]
       MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: ProductPublicSubnet1
+
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ProductVPC
       CidrBlock: 10.0.2.0/24
-      AvailabilityZone: !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: ProductPublicSubnet2
 
-# -------------------
-# Private Subnet
-# -------------------
-  PrivateSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.0.11.0/24
-      AvailabilityZone: !Select [0, !GetAZs ""]
 
-# -------------------
-# Route Table (Public)
-# -------------------
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref ProductVPC
+      Tags:
+        - Key: Name
+          Value: ProductPublicRouteTable
+
 
   PublicRoute:
     Type: AWS::EC2::Route
-    DependsOn: AttachGateway
+    DependsOn: AttachIGW
     Properties:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref IGW
+      GatewayId: !Ref InternetGateway
+
 
   PublicSubnet1Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -74,105 +80,77 @@ Resources:
       SubnetId: !Ref PublicSubnet1
       RouteTableId: !Ref PublicRouteTable
 
+
   PublicSubnet2Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
-# -------------------
-# S3 Bucket (Private + Secure)
-# -------------------
-# S3 Bucket
-  WebsiteBucket:
+# -------------------------------
+# S3 Bucket (Private)
+# -------------------------------
+
+  StaticBucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketName: !Ref BucketName
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
 
-# Logs Bucket
-  LogsBucket:
-    Type: AWS::S3::Bucket
-
+# -------------------------------
 # CloudFront OAC
-  OriginAccessControl:
+# -------------------------------
+
+  CloudFrontOAC:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: OAC
+        Name: ProductOAC
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
 
-# CloudFront
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
-    DependsOn:
-      - WebsiteBucket
-      - OriginAccessControl
     Properties:
       DistributionConfig:
         Enabled: true
         DefaultRootObject: index.html
-
         Origins:
           - Id: S3Origin
-            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
-            OriginAccessControlId: !Ref OriginAccessControl
+            DomainName: !GetAtt StaticBucket.RegionalDomainName
             S3OriginConfig: {}
-
+            OriginAccessControlId: !Ref CloudFrontOAC
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
-          AllowedMethods:
-            - GET
-            - HEAD
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
           ForwardedValues:
             QueryString: false
-          Compress: true
-          DefaultTTL: 86400
-          MaxTTL: 31536000
-          MinTTL: 0
-
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
 
-        Logging:
-          Bucket: !GetAtt LogsBucket.DomainName
-          IncludeCookies: false
-          Prefix: cloudfront-logs/
-
-# Bucket Policy (FIXED)
   BucketPolicy:
     Type: AWS::S3::BucketPolicy
-    DependsOn: CloudFrontDistribution
     Properties:
-      Bucket: !Ref WebsiteBucket
+      Bucket: !Ref StaticBucket
       PolicyDocument:
-        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
               Service: cloudfront.amazonaws.com
             Action: s3:GetObject
-            Resource: !Sub "${WebsiteBucket.Arn}/*"
+            Resource: !Sub "${StaticBucket.Arn}/*"
             Condition:
-              StringLike:
-                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/*"
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
 
-# -------------------
-# Outputs
-# -------------------
 Outputs:
   CloudFrontURL:
-    Value: !GetAtt CloudFrontDistribution.DomainName
-
-  BucketName:
-    Value: !Ref WebsiteBucket
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}"
+ 
